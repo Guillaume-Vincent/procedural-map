@@ -3,7 +3,7 @@ from perlin import Perlin
 from terrain import Terrain
 from town import Town
 
-from random import choice, randint
+from random import choice, choices, randint
 from sys import exit
 
 
@@ -101,19 +101,44 @@ class World(Perlin, Map):
         if not start_list:  # if start_list is empty
             exit("No starting location found")
 
+        # Picking a starting location at random
         riv = choice(start_list)
-        self.pix[riv[0], riv[1]] = Terrain.river
+
         river_end = False
+        still_searching = False
+        search_dist = 1
         while river_end is False:
-            n = 0
-            for neigh in self.neighbours(dist=1, loc=riv):
-                n += 1
-                if riv[0] > self.shape[0] or riv[0] < 0 or riv[1] > self.shape[1] or riv[1] < 0:
+            lower_neighbours = []
+            weights = []
+
+            if 0 < riv[0] < self.shape[0] and 0 < riv[1] < self.shape[1]:
+                self.pix[riv[0], riv[1]] = Terrain.river
+            else:
+                break  # river met his end prematurely
+
+            if still_searching is False:
+                search_dist = 1
+
+            for neigh in self.neighbours(dist=search_dist, loc=riv):
+                if 0 < neigh[0] < self.shape[0] and 0 < neigh[1] < self.shape[1]:
+                    if search_dist == 1 and self.pix[neigh[0], neigh[1]] == Terrain.water:
+                        river_end = True
+
+                    elif self.noiseMap[neigh[0]][neigh[1]] < self.noiseMap[riv[0]][riv[1]]:
+                        lower_neighbours.append(neigh)
+                        delta_h = self.noiseMap[riv[0]][riv[1]] - self.noiseMap[neigh[0]][neigh[1]]
+                        weights.append(delta_h)
+
+            if not lower_neighbours:  # if lower_neighbours is still empty
+                search_dist += 1
+                still_searching = True
+                if search_dist == 50:
                     river_end = True
-                    break
-                if self.noiseMap[neigh[0]][neigh[1]] < self.noiseMap[riv[0]][riv[1]]:
-                    riv = (neigh[0], neigh[1])
-                    self.pix[riv[0], riv[1]] = Terrain.river
-                    break
-            if n == 8:
-                river_end = True
+
+            if lower_neighbours and not river_end:
+                riv = choices(lower_neighbours, weights)[0]
+                still_searching = False
+
+
+
+
