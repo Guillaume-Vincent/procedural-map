@@ -3,7 +3,7 @@ from perlin import Perlin
 from terrain import Terrain
 from town import Town
 
-from random import randint
+from random import choice, randint
 from sys import exit
 
 
@@ -94,3 +94,26 @@ class World(Perlin, Map):
                 exit(errmsg)
 
         return loc
+
+    def add_river(self, start_min_height):
+        # Choose a starting location at random
+        start_list = self.points_higher_than(start_min_height)
+        if not start_list:  # if start_list is empty
+            exit("No starting location found")
+
+        riv = choice(start_list)
+        self.pix[riv[0], riv[1]] = Terrain.river
+        river_end = False
+        while river_end is False:
+            n = 0
+            for neigh in self.neighbours(dist=1, loc=riv):
+                n += 1
+                if riv[0] > self.shape[0] or riv[0] < 0 or riv[1] > self.shape[1] or riv[1] < 0:
+                    river_end = True
+                    break
+                if self.noiseMap[neigh[0]][neigh[1]] < self.noiseMap[riv[0]][riv[1]]:
+                    riv = (neigh[0], neigh[1])
+                    self.pix[riv[0], riv[1]] = Terrain.river
+                    break
+            if n == 8:
+                river_end = True
