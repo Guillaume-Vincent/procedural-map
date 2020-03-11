@@ -1,16 +1,6 @@
 from map import Map
 from perlin import Perlin
 
-import numpy as np
-
-
-def gradient(len_x, len_y):
-    x_axis = np.linspace(-1, 1, len_x)[:, None]
-    y_axis = np.linspace(-1, 1, len_y)[None, :]
-
-    arr = np.sqrt((x_axis ** 2 + y_axis ** 2) / 2)
-    return arr
-
 
 class Town(Perlin, Map):
     def __init__(self, shape, scale, octave, pers, lac):
@@ -28,7 +18,7 @@ class Town(Perlin, Map):
         self.generate_noise()
 
         # Get the circular gradient
-        grad = gradient(self.shape[0], self.shape[1])
+        grad = self.gradient(self.shape[0], self.shape[1])
         
         # For each pixel:
         for i in range(self.shape[0]):

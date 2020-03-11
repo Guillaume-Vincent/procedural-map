@@ -7,7 +7,7 @@
 
 from random import randint
 from noise import pnoise2
-from numpy import zeros
+from numpy import linspace, sqrt, zeros
 
 
 class Perlin:
@@ -73,3 +73,11 @@ class Perlin:
             neighbours_list.append((loc[0] - dist, j))
             neighbours_list.append((loc[0] + dist, j))
         return neighbours_list
+
+    @staticmethod
+    def gradient(len_x, len_y):
+        x_axis = linspace(-1, 1, len_x)[:, None]
+        y_axis = linspace(-1, 1, len_y)[None, :]
+
+        arr = sqrt((x_axis ** 2 + y_axis ** 2) / 2)
+        return arr
