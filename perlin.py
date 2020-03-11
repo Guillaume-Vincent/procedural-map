@@ -52,3 +52,24 @@ class Perlin:
     def __clear(self):
         """Clear the noise map"""
         self.noiseMap = zeros(self.shape)
+
+    def points_higher_than(self, min_value):
+        """Return a list of all the points of the noiseMap higher than minValue"""
+        points_list = []
+        for i in range(self.shape[0]):
+            for j in range(self.shape[1]):
+                if self.noiseMap[i][j] > min_value:
+                    points_list.append((i, j))
+        return points_list
+
+    @staticmethod
+    def neighbours(loc, dist=1):
+        """Return a list of all the points a certain distance away from loc"""
+        neighbours_list = []
+        for i in range(loc[0] - dist, loc[0] + dist + 1):
+            neighbours_list.append((i, loc[1] - dist))
+            neighbours_list.append((i, loc[1] + dist))
+        for j in range(loc[1] - dist + 1, loc[1] + dist):
+            neighbours_list.append((loc[0] - dist, j))
+            neighbours_list.append((loc[0] + dist, j))
+        return neighbours_list
