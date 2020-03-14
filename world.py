@@ -1,5 +1,5 @@
 from map import Map
-from perlin import Perlin
+from perlin import Perlin, loc_neighbours
 from terrain import Terrain
 from town import Town
 
@@ -30,7 +30,7 @@ class World(Perlin, Map):
                 if noise_value < (self.waterLevel - 0.2):
                     self.pix[i, j] = Terrain.deepWater
                 elif noise_value < self.waterLevel:
-                    self.pix[i, j] = Terrain.water
+                    self.pix[i, j] = Terrain.lake
                 elif noise_value < (self.waterLevel + 0.01):
                     self.pix[i, j] = Terrain.sand
                 elif noise_value < (self.waterLevel + 0.05):
@@ -45,7 +45,7 @@ class World(Perlin, Map):
                     self.pix[i, j] = Terrain.snow
 
     def add_town(self, shape, scale, octaves, persistence, lacunarity, stretch):
-        """Randomly place a town of a given (maximum) size on the map"""
+        """Randomly place a town of a given (maximum) size on the map."""
         town_loc = self.find_buildable_location(shape[0])
         town_map = Town(shape, scale, octaves, persistence, lacunarity)
         town_map.generate_map(stretch)
@@ -63,7 +63,7 @@ class World(Perlin, Map):
             m += 1
 
     def find_buildable_location(self, town_size):
-        """Find a place to build a town on the map and return its location"""
+        """Find a place to build a town on the map and return its location."""
         errmsg = "Could not find a suitable place for a town in this map." \
                  "Try reducing the size of the town and changing the terrain"
 
@@ -96,49 +96,42 @@ class World(Perlin, Map):
         return loc
 
     def add_river(self, start_min_height):
-        # Choose a starting location at random
-        start_list = self.points_higher_than(start_min_height)
-        if not start_list:  # if start_list is empty
-            exit("No starting location found")
+        if not self.points_higher_than(start_min_height):  # if there are no mountains
+            exit("No starting location found (mountains)")
+        if not self.points_lower_than(self.waterLevel):  # if there are no lakes
+            exit("No end location found (lakes)")
 
         # Picking a starting location at random
-        riv = choice(start_list)
+        river = choice(self.points_higher_than(start_min_height))
 
         river_end = False
-        still_searching = False
-        search_dist = 1
-        while river_end is False:
-            lower_neighbours = []
+        while not river_end:
+            next_river = []
             weights = []
 
-            if 0 < riv[0] < self.shape[0] and 0 < riv[1] < self.shape[1]:
-                self.pix[riv[0], riv[1]] = Terrain.river
-            else:
-                break  # river met his end prematurely
-
-            if still_searching is False:
-                search_dist = 1
-
-            for neigh in self.neighbours(dist=search_dist, loc=riv):
-                if 0 < neigh[0] < self.shape[0] and 0 < neigh[1] < self.shape[1]:
-                    if search_dist == 1 and self.pix[neigh[0], neigh[1]] == Terrain.water:
-                        river_end = True
-
-                    elif self.noiseMap[neigh[0]][neigh[1]] < self.noiseMap[riv[0]][riv[1]]:
-                        lower_neighbours.append(neigh)
-                        delta_h = self.noiseMap[riv[0]][riv[1]] - self.noiseMap[neigh[0]][neigh[1]]
-                        weights.append(delta_h)
-
-            if not lower_neighbours:  # if lower_neighbours is still empty
-                search_dist += 1
-                still_searching = True
-                if search_dist == 50:
+            for neigh in loc_neighbours(river):
+                # If neigh is out of the map, end river
+                if neigh[0] < 0 or neigh[0] > self.shape[0]-1 or neigh[1] < 0 or neigh[1] > self.shape[1]-1:
                     river_end = True
+                    break
+                # Else, if neigh is a lake, end river
+                elif self.pix[neigh] == Terrain.lake:
+                    river_end = True
+                    break
+                # Else, if neigh is lower than river, add neigh to a list
+                elif self.noiseMap[neigh[0]][neigh[1]] < self.noiseMap[river[0]][river[1]]:
+                    next_river.append(neigh)
+                    weights.append(self.noiseMap[river[0]][river[1]] - self.noiseMap[neigh[0]][neigh[1]])
+            # If next_river is empty, it reached a local minimum, and we must create a pond
+            if not next_river:
+                river_end = True
+                # self.add_pond()
+            # Else, choose where the river will be flowing next
+            else:
+                river = choices(next_river, weights)[0]
+                self.pix[river] = Terrain.river
 
-            if lower_neighbours and not river_end:
-                riv = choices(lower_neighbours, weights)[0]
-                still_searching = False
-
-
+    def generate_river(self):
+        pass
 
 
